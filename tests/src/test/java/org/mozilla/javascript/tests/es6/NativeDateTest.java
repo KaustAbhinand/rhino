@@ -611,6 +611,41 @@ public class NativeDateTest {
     }
 
     @Test
+    public void parseLegacyMinuteOutOfRange() {
+        // min=59 is the top of the valid range.
+        ctorDateTimeString(
+                "2026-01-01T10:59:00.000Z", "new Date('01/01/2026 10:59:00').toISOString()");
+        // min=60 must be rejected rather than rolling over into the next hour.
+        ctorDateTimeString("NaN", "String(Date.parse('01/01/2026 10:60:00'))");
+    }
+
+    @Test
+    public void parseLegacySecondOutOfRange() {
+        // sec=59 is the top of the valid range.
+        ctorDateTimeString(
+                "2026-01-01T10:30:59.000Z", "new Date('01/01/2026 10:30:59').toISOString()");
+        // sec=60 must be rejected rather than rolling over into the next minute.
+        ctorDateTimeString("NaN", "String(Date.parse('01/01/2026 10:30:60'))");
+    }
+
+    @Test
+    public void parseLegacyHourOutOfRange() {
+        // hour=23 is a normal, valid hour.
+        ctorDateTimeString(
+                "2026-01-01T23:00:00.000Z", "new Date('01/01/2026 23:00:00').toISOString()");
+        // hour=24 is only valid as the ECMA/ISO midnight special case, i.e. when
+        // minutes and seconds are both 0; it then rolls to the next day's midnight.
+        ctorDateTimeString(
+                "2026-01-02T00:00:00.000Z", "new Date('01/01/2026 24:00:00').toISOString()");
+        // hour=24 combined with a nonzero minute or second is not the midnight
+        // special case and must be rejected.
+        ctorDateTimeString("NaN", "String(Date.parse('01/01/2026 24:01:00'))");
+        ctorDateTimeString("NaN", "String(Date.parse('01/01/2026 24:00:01'))");
+        // hour=25 is out of range outright.
+        ctorDateTimeString("NaN", "String(Date.parse('01/01/2026 25:00:00'))");
+    }
+
+    @Test
     public void parseLegacyValidDatesStillWork() {
         // Ensure that the old valid dates are still parsed effectively.
         ctorDateTimeString("2026-12-31T00:00:00.000Z", "new Date('12/31/2026').toISOString()");
